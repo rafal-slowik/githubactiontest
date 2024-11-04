@@ -76,11 +76,11 @@ jobs:
             exit 1
           fi
           
-          if [ -z "${{ github.event.inputs.tag }}" ]; then
-            echo "Tag is empty!"
-            exit 1
+          if [[ "${{ github.event.inputs.tag }}" =~ ^[a-zA-Z0-9_][a-zA-Z0-9-_.]{0,127}$ ]]; then
+            echo "Valid tag"
           else
-            echo "Tag is set: ${{ github.event.inputs.tag }}"
+            echo "Invalid input"
+            exit 1
           fi
 
       - name: Print Variables
