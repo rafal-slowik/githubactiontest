@@ -88,12 +88,12 @@ jobs:
         run: |
           source $GITHUB_ENV
           
-          echo "SOURCE_ACR_USERNAME: $SOURCE_ACR_USERNAME"
-          echo "SOURCE_ACR_PASSWORD: $SOURCE_ACR_PASSWORD"
-          echo "SOURCE_ACR: $SOURCE_ACR"
-          echo "DEST_ACR_USERNAME: $DEST_ACR_USERNAME"
-          echo "DEST_ACR_PASSWORD: $DEST_ACR_PASSWORD"
-          echo "DEST_ACR: $DEST_ACR"
+          echo "SOURCE_ACR_USERNAME: ${SOURCE_ACR_USERNAME}"
+          echo "SOURCE_ACR_PASSWORD: ${SOURCE_ACR_PASSWORD}"
+          echo "SOURCE_ACR: ${SOURCE_ACR}"
+          echo "DEST_ACR_USERNAME: ${DEST_ACR_USERNAME}"
+          echo "DEST_ACR_PASSWORD: ${DEST_ACR_PASSWORD}"
+          echo "DEST_ACR: ${DEST_ACR}"
           echo "SERVICE: ${{ github.event.inputs.service_name }}"
           echo "TAG: ${{ github.event.inputs.tag }}"
 
