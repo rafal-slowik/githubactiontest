@@ -84,7 +84,7 @@ jobs:
           fi
 
       - name: Print Variables
-        id: set-vars
+        id: print-vars
         run: |
           source $GITHUB_ENV
           
