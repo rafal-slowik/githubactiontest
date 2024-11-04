@@ -75,8 +75,9 @@ jobs:
             echo "Invalid source environment"
             exit 1
           fi
-          
-          if [[ "${{ github.event.inputs.tag }}" =~ "^[a-zA-Z0-9_][a-zA-Z0-9-_.]{0,127}$" ]]; then
+
+          SANITIZED_INPUT_TAG=$(printf '%q' "${{ github.event.inputs.tag }}")
+          if [[ "$SANITIZED_INPUT_TAG" =~ "^[a-zA-Z0-9_][a-zA-Z0-9-_.]{0,127}$" ]]; then
             echo "Valid tag"
           else
             echo "Invalid input"
