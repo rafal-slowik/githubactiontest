@@ -68,6 +68,8 @@ jobs:
         run: |
           source $GITHUB_ENV
 
+          echo "SOURCE_ENV_ACR_USERNAME ++++++++++ ${SOURCE_ENV_ACR_USERNAME}"
+
           SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME
           
           if [ -z "${{ secrets.SOURCE_ENV_ACR_USERNAME }}" ]; then
