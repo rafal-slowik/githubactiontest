@@ -1,0 +1,122 @@
+name: Promote Docker Image
+
+on:
+  workflow_call:
+    secrets:
+      source_acr_password:
+        description: 'ACR source container registry password'
+        required: true
+      dest_asr_password:
+        description: 'ACR destination container registry password'
+        required: true
+    inputs:
+      source_acr_username:
+        type: string
+        description: 'ACR source container registry username'
+        required: true
+      dest_acr_username:
+        type: string
+        description: 'ACR destination container registry username'
+        required: true
+      service_name:
+        type: string
+        description: 'A service name (repository) of the image to be transferred'
+        required: true
+      tag:
+        type: string
+        description: 'A container tag'
+        required: true
+
+jobs:
+  transfer-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set Variables
+        id: vars
+        run: |
+          SOURCE_ENV_ACR_USERNAME="${{ github.event.inputs.source_environment }}_ACR_USERNAME"
+          SOURCE_ENV_ACR_USERNAME="${SOURCE_ENV_ACR_USERNAME^^}"
+          
+          DEST_ENV_ACR_USERNAME="${{ github.event.inputs.destination_environment }}_ACR_USERNAME"
+          SERVICE="${{ github.event.inputs.service_name }}"
+          TAG="${{ github.event.inputs.source_tag }}"
+          
+          echo "SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME" >> $GITHUB_ENV
+          echo "DEST_ENV_ACR_USERNAME=$DEST_ENV_ACR_USERNAME" >> $GITHUB_ENV
+          echo "SERVICE=$SERVICE" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+          echo "SOURCE_ENV_ACR_USERNAME: $SOURCE_ENV_ACR_USERNAME"
+          echo "DEST_ENV_ACR_USERNAME: $DEST_ENV_ACR_USERNAME"
+          echo "SERVICE: $SERVICE"
+          echo "TAG: $TAG"
+          
+
+      - name: Check if Environment Variables Exist
+        run: |
+          source $GITHUB_ENV
+
+          echo "SOURCE_ENV_ACR_USERNAME ++++++++++ ${SOURCE_ENV_ACR_USERNAME}"
+
+          SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME
+
+          SOURCE_ENV_ACR_USERNAME_SECRET_VALUE="${{ secrets[SOURCE_ENV_ACR_USERNAME] }}"
+          
+          if [ -z "$SOURCE_ENV_ACR_USERNAME_SECRET_VALUE" ]; then
+            echo "Environment variable SOURCE_ENV_ACR_USERNAME is not set or does not exist"
+            exit 1
+          else
+            echo "SOURCE_ENV_ACR_USERNAME is set"
+          fi
+          
+          if [ -z "${!DEST_ENV_ACR_USERNAME}" ]; then
+            echo "Environment variable DEST_ENV_ACR_USERNAME is not set or does not exist"
+            exit 1
+          else
+            echo "DEST_ENV_ACR_USERNAME is set"
+          fi
+          
+          if [ -z "${!SERVICE}" ]; then
+            echo "Environment variable SERVICE is not set"
+            exit 1
+          else
+            echo "SERVICE is set"
+          fi
+          
+          if [ -z "${!TAG}" ]; then
+            echo "Environment variable TAG is not set"
+            exit 1
+          else 
+            echo "TAG is set"
+          fi
+
+#      - name: Login to Source Azure ACR
+#        uses: azure/docker-login@v1
+#        with:
+#          login-server: ${{ env.SRC_ACR }}.azurecr.io
+#          username: ${{ secrets.ACR_USERNAME }}
+#          password: ${{ secrets.ACR_PASSWORD }}
+#
+#      - name: Pull Image from Source ACR
+#        run: |
+#          docker pull $SRC_ACR.azurecr.io/$SERVICE:$TAG
+#
+#      - name: Login to Destination Azure ACR
+#        uses: azure/docker-login@v1
+#        with:
+#          login-server: ${{ env.DEST_ACR }}.azurecr.io
+#          username: ${{ secrets.ACR_USERNAME }}
+#          password: ${{ secrets.ACR_PASSWORD }}
+#
+#      - name: Tag and Push Image to Destination ACR
+#        run: |
+#          docker tag $SRC_ACR.azurecr.io/$SERVICE:$TAG $DEST_ACR.azurecr.io/$SERVICE:$TAG
+#          docker push $DEST_ACR.azurecr.io/$SERVICE:$TAG
+#
+#      - name: Clean up local images
+#        run: |
+#          docker rmi $SRC_ACR.azurecr.io/$SERVICE:$TAG
+#          docker rmi $DEST_ACR.azurecr.io/$SERVICE:$TAG
