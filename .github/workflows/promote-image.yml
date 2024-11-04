@@ -48,6 +48,7 @@ jobs:
         run: |
           SOURCE_ENV_ACR_USERNAME="${{ github.event.inputs.source_environment }}_ACR_USERNAME"
           SOURCE_ENV_ACR_USERNAME="${SOURCE_ENV_ACR_USERNAME^^}"
+          
           DEST_ENV_ACR_USERNAME="${{ github.event.inputs.destination_environment }}_ACR_USERNAME"
           SERVICE="${{ github.event.inputs.service_name }}"
           TAG="${{ github.event.inputs.source_tag }}"
@@ -56,6 +57,12 @@ jobs:
           echo "DEST_ENV_ACR_USERNAME=$DEST_ENV_ACR_USERNAME" >> $GITHUB_ENV
           echo "SERVICE=$SERVICE" >> $GITHUB_ENV
           echo "TAG=$TAG" >> $GITHUB_ENV
+
+          echo "SOURCE_ENV_ACR_USERNAME: $SOURCE_ENV_ACR_USERNAME"
+          echo "DEST_ENV_ACR_USERNAME: $DEST_ENV_ACR_USERNAME"
+          echo "SERVICE: $SERVICE"
+          echo "TAG: $TAG"
+          
 
       - name: Check if Environment Variables Exist
         run: |
