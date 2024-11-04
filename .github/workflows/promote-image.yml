@@ -71,8 +71,10 @@ jobs:
           echo "SOURCE_ENV_ACR_USERNAME ++++++++++ ${SOURCE_ENV_ACR_USERNAME}"
 
           SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME
+
+          SOURCE_ENV_ACR_USERNAME_SECRET_VALUE=$(eval echo \${{ secrets.${SOURCE_ENV_ACR_USERNAME} }})
           
-          if [ -z "${{ secrets.${SOURCE_ENV_ACR_USERNAME} }}" ]; then
+          if [ -z "${SOURCE_ENV_ACR_USERNAME_SECRET_VALUE}" ]; then
             echo "Environment variable SOURCE_ENV_ACR_USERNAME is not set or does not exist"
             exit 1
           else
