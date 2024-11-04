@@ -7,13 +7,13 @@ on:
         description: "Select the source environment"
         required: true
         type: choice
-        options: 
+        options:
           - dev
       service_name:
         description: "Select the source service name"
         required: true
         type: choice
-        options: 
+        options:
           - admin-service
           - anti-corruption-layer
           - consent-text-service
@@ -22,7 +22,7 @@ on:
           - retail-ui
           - retail-ui-prism
           - systems-directory-service
-      source_tag:
+      tag:
         description: "Specify the Docker image tag in the source ACR"
         required: true
         type: string
@@ -36,96 +36,92 @@ on:
 jobs:
   promote-docker-image:
     runs-on: ubuntu-latest
+    env:
+      DEV_ACR_USERNAME: ${{ vars.DEV_ACR_USERNAME }}
+      DEV_ACR_PREFIX: ${{ vars.DEV_ACR_PREFIX }}
+      PROD_ACR_USERNAME: ${{ vars.PROD_ACR_USERNAME }}
+      PROD_ACR_PREFIX: ${{ vars.PROD_ACR_PREFIX }}
     if: |
-      (github.event.inputs.source_environment == 'dev' && (github.event.inputs.destination_environment == 'prod'))
-      
+      (github.event.inputs.source_environment == 'dev' && (github.event.inputs.destination_environment == 'int' || github.event.inputs.destination_environment == 'prod')) ||
+      (github.event.inputs.source_environment == 'int' && github.event.inputs.destination_environment == 'prod')
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      
+        uses: actions/checkout@v4
+
       - name: Set Variables
-        id: vars
+        id: set-vars
         run: |
-          SOURCE_ENV_ACR_USERNAME="${{ github.event.inputs.source_environment }}_ACR_USERNAME"
-          SOURCE_ENV_ACR_USERNAME="${SOURCE_ENV_ACR_USERNAME^^}"
-          
-          DEST_ENV_ACR_USERNAME="${{ github.event.inputs.destination_environment }}_ACR_USERNAME"
-          SERVICE="${{ github.event.inputs.service_name }}"
-          TAG="${{ github.event.inputs.source_tag }}"
-          
-          echo "SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME" >> $GITHUB_ENV
-          echo "DEST_ENV_ACR_USERNAME=$DEST_ENV_ACR_USERNAME" >> $GITHUB_ENV
-          echo "SERVICE=$SERVICE" >> $GITHUB_ENV
-          echo "TAG=$TAG" >> $GITHUB_ENV
+          if [ "${{ github.event.inputs.source_environment }}" == "dev" ]; then
+            echo "SOURCE_ACR_USERNAME=${{ env.DEV_ACR_USERNAME }}" >> $GITHUB_OUTPUT
+            echo "SOURCE_ACR_PASSWORD=${{ secrets.DEV_ACR_PASSWORD }}" >> $GITHUB_OUTPUT
+            echo "SOURCE_ACR=${{ env.DEV_ACR_PREFIX }}.azurecr.io" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.source_environment }}" == "int" ]; then
+            echo "Invalid source environment - change it once int created"
+            exit 1
+          else
+            echo "Invalid source environment"
+            exit 1
+          fi
 
-          echo "SOURCE_ENV_ACR_USERNAME: $SOURCE_ENV_ACR_USERNAME"
-          echo "DEST_ENV_ACR_USERNAME: $DEST_ENV_ACR_USERNAME"
-          echo "SERVICE: $SERVICE"
-          echo "TAG: $TAG"
+          if [ "${{ github.event.inputs.destination_environment }}" == "prod" ]; then
+            echo "DEST_ACR_USERNAME=${{ env.PROD_ACR_USERNAME }}" >> $GITHUB_OUTPUT
+            echo "DEST_ACR_PASSWORD=${{ secrets.PROD_ACR_PASSWORD }}" >> $GITHUB_OUTPUT
+            echo "DEST_ACR=${{ env.PROD_ACR_PREFIX }}.azurecr.io" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.destination_environment }}" == "int" ]; then
+            echo "Invalid dest environment - change it once int created"
+            exit 1
+          else
+            echo "Invalid source environment"
+            exit 1
+          fi
           
+          if [ -z "${{ github.event.inputs.tag }}" ]; then
+            echo "Tag is empty!"
+            exit 1
+          else
+            echo "Tag is set: ${{ github.event.inputs.tag }}"
+          fi
 
-      - name: Check if Environment Variables Exist
+      - name: Print Variables
+        id: set-vars
         run: |
           source $GITHUB_ENV
-
-          echo "SOURCE_ENV_ACR_USERNAME ++++++++++ ${SOURCE_ENV_ACR_USERNAME}"
-
-          SOURCE_ENV_ACR_USERNAME=$SOURCE_ENV_ACR_USERNAME
-
-          SOURCE_ENV_ACR_USERNAME_SECRET_VALUE="${{ secrets[SOURCE_ENV_ACR_USERNAME] }}"
           
-          if [ -z "$SOURCE_ENV_ACR_USERNAME_SECRET_VALUE" ]; then
-            echo "Environment variable SOURCE_ENV_ACR_USERNAME is not set or does not exist"
-            exit 1
-          else
-            echo "SOURCE_ENV_ACR_USERNAME is set"
-          fi
-          
-          if [ -z "${!DEST_ENV_ACR_USERNAME}" ]; then
-            echo "Environment variable DEST_ENV_ACR_USERNAME is not set or does not exist"
-            exit 1
-          else
-            echo "DEST_ENV_ACR_USERNAME is set"
-          fi
-          
-          if [ -z "${!SERVICE}" ]; then
-            echo "Environment variable SERVICE is not set"
-            exit 1
-          else
-            echo "SERVICE is set"
-          fi
-          
-          if [ -z "${!TAG}" ]; then
-            echo "Environment variable TAG is not set"
-            exit 1
-          else 
-            echo "TAG is set"
-          fi
+          echo "SOURCE_ACR_USERNAME $SOURCE_ACR_USERNAME"
+          echo "SOURCE_ACR_USERNAME $SOURCE_ACR_USERNAME"
+          echo "SOURCE_ACR_PASSWORD $SOURCE_ACR_PASSWORD"
+          echo "DEST_ACR_USERNAME $DEST_ACR_USERNAME"
+          echo "DEST_ACR_USERNAME $DEST_ACR_USERNAME"
+          echo "DEST_ACR_PASSWORD $DEST_ACR_PASSWORD"
+          echo "DEST_ACR_PASSWORD $DEST_ACR_PASSWORD"
+          echo "SERVICE: ${{ github.event.inputs.service }}"
+          echo "TAG: ${{ github.event.inputs.tag }}"
 
 #      - name: Login to Source Azure ACR
-#        uses: azure/docker-login@v1
+#        uses: azure/docker-login@v2
 #        with:
-#          login-server: ${{ env.SRC_ACR }}.azurecr.io
-#          username: ${{ secrets.ACR_USERNAME }}
-#          password: ${{ secrets.ACR_PASSWORD }}
-#
+#          login-server: ${{ steps.set-vars.outputs.SOURCE_ACR }}
+#          username: ${{ steps.set-vars.outputs.SOURCE_ACR_USERNAME }}
+#          password: ${{ steps.set-vars.outputs.SOURCE_ACR_PASSWORD }}
+
 #      - name: Pull Image from Source ACR
 #        run: |
-#          docker pull $SRC_ACR.azurecr.io/$SERVICE:$TAG
+#          docker pull ${{ steps.set-vars.outputs.SOURCE_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }}
 #
 #      - name: Login to Destination Azure ACR
-#        uses: azure/docker-login@v1
+#        uses: azure/docker-login@v2
 #        with:
-#          login-server: ${{ env.DEST_ACR }}.azurecr.io
-#          username: ${{ secrets.ACR_USERNAME }}
-#          password: ${{ secrets.ACR_PASSWORD }}
-#
+#          login-server: ${{ steps.set-vars.outputs.DEST_ACR }}
+#          username: ${{ steps.set-vars.outputs.DEST_ACR_USERNAME }}
+#          password: ${{ steps.set-vars.outputs.DEST_ACR_PASSWORD }}
+
 #      - name: Tag and Push Image to Destination ACR
 #        run: |
-#          docker tag $SRC_ACR.azurecr.io/$SERVICE:$TAG $DEST_ACR.azurecr.io/$SERVICE:$TAG
-#          docker push $DEST_ACR.azurecr.io/$SERVICE:$TAG
+#          docker tag ${{ steps.set-vars.outputs.SOURCE_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }} ${{ steps.set-vars.outputs.DEST_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }}
+#          docker push ${{ steps.set-vars.outputs.DEST_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }}
 #
 #      - name: Clean up local images
 #        run: |
-#          docker rmi $SRC_ACR.azurecr.io/$SERVICE:$TAG
-#          docker rmi $DEST_ACR.azurecr.io/$SERVICE:$TAG
+#          docker rmi ${{ steps.set-vars.outputs.SOURCE_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }}
+#          docker rmi ${{ steps.set-vars.outputs.DEST_ACR }}/${{ github.event.inputs.service }}:${{ github.event.inputs.tag }}
