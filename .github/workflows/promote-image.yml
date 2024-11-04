@@ -68,7 +68,7 @@ jobs:
         run: |
           source $GITHUB_ENV
           
-          if [ -z "${!SOURCE_ENV_ACR_USERNAME}" ]; then
+          if [ -z "${{ secrets[SOURCE_ENV_ACR_USERNAME] }}" ]; then
             echo "Environment variable SOURCE_ENV_ACR_USERNAME is not set or does not exist"
             exit 1
           else
